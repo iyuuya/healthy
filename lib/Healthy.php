@@ -9,10 +9,51 @@ class Healthy {
     $this->timeout = $timeout;
   }
 
-  public function getStatuses() {
+  public function run() {
+    if (count($this->applications) === 1) {
+      $this->runAppForChild();
+    } else {
+      $this->runAppForAll();
+    }
+  }
+
+  public function runAppForAll() {
+    $statuses = $this->getStatuses();
+    $filtered = array_filter($statuses, function ($var) {
+      return $var === 200;
+    });
+    if (empty($filtered)) {
+      $this->render_ng(504);
+    } else if (count($statuses) === count($filtered)) {
+      $this->render_ok();
+    } else {
+      $this->render_ng(max($statuses));
+    }
+  }
+
+  public function runAppForChild() {
+    $status = $this->getStatuses()[0];
+
+    if ($status === 200) {
+      $this->render_ok();
+    } else {
+      $this->render_ng($status);
+    }
+  }
+
+  private function getStatuses() {
     return array_map(function ($app) {
       return $this->getStatus("http://localhost/{$app}/");
     }, $this->applications);
+  }
+
+  private function render_ok() {
+    echo "200\n";
+  }
+
+  private function render_ng($status) {
+    http_response_code($status);
+    echo "{$status}\n";
   }
 
   private function getStatus($url) {
@@ -37,6 +78,10 @@ class Healthy {
     curl_exec($channel);
     if (!curl_errno($channel)) {
       $header = curl_getinfo($channel);
+    } else {
+      $header = [
+        'http_code' => 504
+      ];
     }
     curl_close($channel);
     return $header['http_code'];
