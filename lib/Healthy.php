@@ -43,7 +43,7 @@ class Healthy {
 
   private function getStatuses() {
     return array_map(function ($app) {
-      return $this->getStatus("http://localhost/{$app}/");
+      return $this->getStatus("http://{$app}/");
     }, $this->applications);
   }
 
